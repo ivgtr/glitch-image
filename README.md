@@ -1,6 +1,9 @@
-<div align="center" style="margin:15px;">
-  <img width="400" alt="glitch-image" src="https://glitch-image.vercel.app/api">
-  <p align="center" style="margin:15px;">Copy-paste this into your markdown content, and that's it. Simple!</p>
+<div align="center">
+  <h1>
+    <img width="400" alt="glitch-image" src="https://glitch-image.vercel.app/api">
+
+  </h1>
+  <p align="center">Copy-paste this into your markdown content, and that's it. Simple!</p>
 </div>
 
 ## Setup
