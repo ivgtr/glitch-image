@@ -1,11 +1,23 @@
-[![badge](https://glitch-image.vercel.app/api)](https://glitch-image.vercel.app/api)
+<div align="center" style="margin:15px;">
+  <img width="400" alt="glitch-image" src="https://glitch-image.vercel.app/api">
+  <p align="center" style="margin:15px;">Copy-paste this into your markdown content, and that's it. Simple!</p>
+</div>
 
 ## Setup
 
-Copy-paste this into your markdown content, and that's it. Simple!
+Change the `?text=` value to your want to glitch text.
 
 ```md
-[![badge](https://glitch-image.vercel.app/api)](https://glitch-image.vercel.app/api)
+[![badge](https://glitch-image.vercel.app/api?text=Glitch%20Image)](https://glitch-image.vercel.app/api?text=Glitch%20Image)
+```
+
+### Image
+
+Change the `?url=` value to your want to glitch image url.
+※ Not supported files other than `.png`.
+
+```md
+[![badge](https://glitch-image.vercel.app/api?url=https://github.com/ivgtr.png)](https://glitch-image.vercel.app/api?url=https://github.com/ivgtr.png)
 ```
 
 ## License
