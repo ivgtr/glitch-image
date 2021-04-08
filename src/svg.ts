@@ -1,5 +1,5 @@
 import type { query } from './@types/Query'
-import { createImageElement, createTextElement } from './calculator'
+import { createImageElement, createTextElement } from './create'
 import s from './style'
 import h from './tag'
 
