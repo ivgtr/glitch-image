@@ -7,11 +7,11 @@ export default function (
     str.replace(/[A-Z]/g, (letter) => `-${letter.toLowerCase()}`)
 
   const attrs = Object.entries(attributes).reduce(
-    (acc, [k, v]) => `${acc} ${camelToKebab(k)}: ${v};\n`,
+    (acc, [k, v]) => `${acc} ${camelToKebab(k)}: ${v};`,
     ''
   )
 
   const close = `${children.join('')}`
 
-  return `${className} {\n${attrs}${close}}\n`
+  return `${className} {${attrs}${close}}`
 }
