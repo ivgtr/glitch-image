@@ -1,8 +1,7 @@
 <div align="center">
-  <h1>
-    <img width="400" alt="glitch-image" src="https://glitch-image.vercel.app/api" loading="lazy">
-
-  </h1>
+  <h3>
+    <img width="400" alt="glitch-image" src="https://glitch-image.vercel.app/api">
+  </h3>
   <p align="center">Copy-paste this into your markdown content, and that's it. Simple!</p>
 </div>
 
@@ -16,7 +15,7 @@ Change the `?text=` value to your want to glitch text.
 
 ### Image
 
-Change the `?url=` value to your want to glitch image url.
+Change the `?url=` value to your want to glitch image url.  
 ※ Not supported files other than `.png`.
 
 ```md
