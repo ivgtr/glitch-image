@@ -1,6 +1,6 @@
 <div align="center">
   <h1>
-    <img width="400" alt="glitch-image" src="https://glitch-image.vercel.app/api">
+    <img width="400" alt="glitch-image" src="https://glitch-image.vercel.app/api" loading="lazy">
 
   </h1>
   <p align="center">Copy-paste this into your markdown content, and that's it. Simple!</p>
