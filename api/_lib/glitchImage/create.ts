@@ -17,7 +17,7 @@ export const createImageElement = async (url: string) => {
       y: "0",
       height: "100%",
       width: "100%",
-      mask: "url(#mask)",
+      filter: "url(#glitch)",
     }),
     ratio: { x: info.width, y: info.height },
   };
