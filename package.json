@@ -4,10 +4,12 @@
   "main": "index.js",
   "license": "MIT",
   "scripts": {
-    "start": "vercel dev"
+    "start": "vercel dev",
+    "format": "prettier -w ./api"
   },
   "devDependencies": {
     "@types/node": "14.17.15",
+    "@vercel/node": "^1.9.1",
     "eslint": "7.32.0",
     "eslint-config-sumikko": "1.2.2",
     "prettier": "2.4.0",
@@ -15,10 +17,7 @@
     "vercel": "23.1.2"
   },
   "dependencies": {
-    "@vercel/node": "^1.9.1",
     "axios": "^0.21.1",
-    "canvas": "^2.7.0",
-    "image-size": "^1.0.0",
-    "svgson": "^5.2.1"
+    "image-size": "^1.0.0"
   }
 }
