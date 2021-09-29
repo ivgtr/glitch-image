@@ -13,10 +13,10 @@ export const createImageElement = async (url: string) => {
   return {
     contents: h("image", {
       href: `data:image/${info.type};base64,${buffer}`,
-      x: "0",
-      y: "0",
-      height: "100%",
-      width: "100%",
+      x: "5%",
+      y: "5%",
+      height: "90%",
+      width: "90%",
       filter: "url(#glitch)",
     }),
     ratio: { x: info.width, y: info.height },
