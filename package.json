@@ -11,12 +11,12 @@
     "eslint": "8.7.0",
     "eslint-config-sumikko": "1.2.2",
     "prettier": "2.5.1",
-    "typescript": "4.5.4",
+    "typescript": "4.5.5",
     "vercel": "23.1.2"
   },
   "dependencies": {
     "@vercel/node": "^1.9.1",
-    "axios": "^0.24.0",
+    "axios": "^0.25.0",
     "canvas": "^2.7.0",
     "image-size": "^1.0.0",
     "svgson": "^5.2.1"
