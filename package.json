@@ -16,7 +16,7 @@
   },
   "dependencies": {
     "@vercel/node": "^1.9.1",
-    "axios": "^0.25.0",
+    "axios": "^0.26.0",
     "canvas": "^2.7.0",
     "image-size": "^1.0.0",
     "svgson": "^5.2.1"
