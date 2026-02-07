@@ -13,7 +13,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## コードスタイル
 
-- ESLint: `eslint-config-sumikko` (Node.js + TypeScript + Prettier統合)
+- ESLint: v9 flat config (`eslint.config.mjs`) — `@eslint/js` + `typescript-eslint` + `eslint-config-prettier`
 - Prettier: セミコロンなし、シングルクォート、トレイリングカンマなし、100文字幅、2スペースインデント
 - TypeScript: strict mode有効、未使用変数・パラメータ禁止
 
