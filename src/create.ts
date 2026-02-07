@@ -1,5 +1,6 @@
 import axios from 'axios'
 import { imageSize } from 'image-size'
+import stringWidth from 'string-width'
 import tag from './tag.js'
 
 export interface ElementResult {
@@ -41,8 +42,8 @@ export async function createImageElement(url: string): Promise<ElementResult> {
 }
 
 export function createTextElement(text: string, fontSize: number): ElementResult {
-  const offsetHeight = fontSize
-  const offsetWidth = text.length * offsetHeight
+  const offsetHeight = Math.ceil(fontSize * 1.5)
+  const offsetWidth = stringWidth(text) * fontSize
 
   return {
     content: tag(
