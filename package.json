@@ -1,10 +1,12 @@
 {
   "name": "glitch-image",
   "version": "0.0.1",
+  "type": "module",
   "main": "index.js",
   "license": "MIT",
   "scripts": {
-    "start": "vercel dev"
+    "start": "vercel dev",
+    "lint": "eslint ."
   },
   "devDependencies": {
     "@eslint/js": "^9.18.0",
@@ -20,6 +22,7 @@
     "@vercel/node": "^5.0.0",
     "axios": "^1.7.0",
     "image-size": "^2.0.0",
-    "svgson": "^5.2.1"
+    "string-width": "^8.1.1",
+    "valibot": "^1.0.0"
   }
 }

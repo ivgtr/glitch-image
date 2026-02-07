@@ -1,4 +1,4 @@
-export default function (
+export default function style(
   className: string,
   attributes: { [attr: string]: string },
   ...children: string[]
