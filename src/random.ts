@@ -9,31 +9,25 @@ export interface GlitchParams {
   slices: SliceDefinition[]
 }
 
-type DelayType = 'FLASH' | 'QUICK' | 'NORMAL' | 'FREEZE'
-
-interface Frame {
-  dx: number
-  delay: DelayType
+interface PhaseConfig {
+  rest1: number
+  spark: number
+  rest2: number
+  climax: number
+  sustain: number
 }
 
-const DELAY_RATIOS: Record<DelayType, number> = {
-  FLASH: 0.03,
-  QUICK: 0.06,
-  NORMAL: 0.12,
-  FREEZE: 0.25
-} as const
+interface GlitchProfile {
+  channelRange: number
+  sliceRange: number
+  duration: number
+  climaxFrameCount: number
+}
 
-const RHYTHM_PATTERNS: DelayType[][] = [
-  ['NORMAL', 'FLASH', 'QUICK', 'FLASH'],
-  ['FLASH', 'FREEZE', 'FLASH', 'QUICK'],
-  ['FLASH', 'QUICK', 'NORMAL', 'FREEZE'],
-  ['QUICK', 'NORMAL', 'QUICK', 'FLASH'],
-  ['FLASH', 'FLASH', 'FLASH', 'QUICK'],
-  ['FLASH', 'FREEZE', 'FLASH', 'FREEZE'],
-  ['FLASH', 'FLASH', 'QUICK', 'NORMAL']
-]
-
-const PHI = 1.618
+interface PhaseFrame {
+  dx: number
+  time: number
+}
 
 function createRng(seed: number): () => number {
   let s = seed | 0
@@ -53,60 +47,64 @@ function randInt(rng: () => number, min: number, max: number): number {
   return Math.floor(lerp(rng, min, max + 1))
 }
 
-function selectRhythmPattern(rng: () => number): DelayType[] {
-  return RHYTHM_PATTERNS[randInt(rng, 0, RHYTHM_PATTERNS.length - 1)]
+function generateProfile(rng: () => number): GlitchProfile {
+  return {
+    channelRange: lerp(rng, 0.03, 0.07),
+    sliceRange: lerp(rng, 0.08, 0.2),
+    duration: lerp(rng, 2.5, 5.0),
+    climaxFrameCount: randInt(rng, 3, 8)
+  }
 }
 
-function buildTensionCurve(rng: () => number, steps: number): number[] {
-  const intensities: number[] = []
-  const remaining = steps
-  const buildupCount = Math.max(1, Math.round((remaining * PHI) / (PHI + 1)))
-  const climaxCount = randInt(rng, 1, 2)
-  const releaseCount = Math.max(1, steps - buildupCount - climaxCount)
-  const actualBuildupCount = steps - climaxCount - releaseCount
+function generatePhaseConfig(rng: () => number): PhaseConfig {
+  const rest1 = lerp(rng, 0.2, 0.35)
+  const spark = lerp(rng, 0.02, 0.05)
+  const rest2 = lerp(rng, 0.25, 0.4)
+  const climax = lerp(rng, 0.1, 0.25)
+  const sustain = lerp(rng, 0.05, 0.15)
 
-  for (let i = 0; i < actualBuildupCount; i++) {
-    const t = actualBuildupCount === 1 ? 1 : i / (actualBuildupCount - 1)
-    intensities.push(0.1 + 0.9 * t * t)
+  const total = rest1 + spark + rest2 + climax + sustain
+  return {
+    rest1: rest1 / total,
+    spark: spark / total,
+    rest2: rest2 / total,
+    climax: climax / total,
+    sustain: sustain / total
   }
-
-  for (let i = 0; i < climaxCount; i++) {
-    intensities.push(lerp(rng, 0.9, 1.0))
-  }
-
-  for (let i = 0; i < releaseCount; i++) {
-    const t = releaseCount === 1 ? 1 : i / (releaseCount - 1)
-    intensities.push(0.6 * (1 - t))
-  }
-
-  return intensities
 }
 
-function buildFrameSequence(
+function buildPhaseFrames(
   rng: () => number,
-  intensities: number[],
-  rhythm: DelayType[],
-  min: number,
-  max: number
-): Frame[] {
-  const frames: Frame[] = [{ dx: 0, delay: 'QUICK' }]
+  maxDx: number,
+  climaxFrameCount: number
+): PhaseFrame[] {
+  const phase = generatePhaseConfig(rng)
+  const frames: PhaseFrame[] = []
 
-  for (let i = 0; i < intensities.length; i++) {
-    const intensity = intensities[i]
-    const breathChance = intensity > 0.7 ? 0.1 : intensity > 0.3 ? 0.3 : 0.6
+  // REST1: 静止
+  frames.push({ dx: 0, time: 0 })
 
-    if (rng() < breathChance) {
-      const breathDelay: DelayType = intensity > 0.7 ? 'QUICK' : 'FREEZE'
-      frames.push({ dx: 0, delay: breathDelay })
-    }
+  // SPARK: 一瞬のグリッチ + リセット
+  const sparkDx = lerp(rng, 0.5, 1.0) * maxDx * (rng() < 0.5 ? 1 : -1)
+  frames.push({ dx: sparkDx, time: phase.rest1 })
+  frames.push({ dx: 0, time: phase.rest1 + phase.spark * 0.5 })
 
-    const amplitude = intensity * (max - min)
-    const dx = min + rng() * amplitude * (rng() < 0.5 ? 1 : -1)
-    const delay = rhythm[i % rhythm.length]
-    frames.push({ dx, delay })
+  // REST2: 再び静止（sparkリセット位置からclimaxまで自動的に静止）
+
+  // CLIMAX: 高密度のグリッチフレーム
+  const climaxStart = phase.rest1 + phase.spark + phase.rest2
+  const climaxStepSize = phase.climax / climaxFrameCount
+  for (let i = 0; i < climaxFrameCount; i++) {
+    const intensity = lerp(rng, 0.6, 1.0)
+    const dx = intensity * maxDx * (rng() < 0.5 ? 1 : -1)
+    frames.push({ dx, time: climaxStart + i * climaxStepSize })
   }
 
-  frames.push({ dx: 0, delay: 'NORMAL' })
+  // SUSTAIN: 最後のCLIMAXフレームの値を保持
+  const lastClimaxDx = frames[frames.length - 1].dx
+  frames.push({ dx: lastClimaxDx, time: climaxStart + phase.climax })
+  frames.push({ dx: 0, time: 1 })
+
   return frames
 }
 
@@ -114,94 +112,102 @@ function formatValue(v: number): string {
   return v.toFixed(2).replace(/\.?0+$/, '') || '0'
 }
 
-function framesToValuesAndKeyTimes(frames: Frame[]): { values: string; keyTimes: string } {
-  const totalRatio = frames.reduce((sum, f) => sum + DELAY_RATIOS[f.delay], 0)
+function framesToValuesAndKeyTimes(frames: PhaseFrame[]): {
+  values: string
+  keyTimes: string
+} {
+  const values = frames.map((f) => formatValue(f.dx)).join('; ')
+  const keyTimes = frames.map((f) => formatValue(f.time)).join('; ')
+  return { values, keyTimes }
+}
 
-  const values: string[] = []
-  const keyTimes: string[] = []
-  let cumulative = 0
+function generateSymmetricChannels(
+  rng: () => number,
+  channelRange: number,
+  climaxFrameCount: number
+): {
+  red: { values: string; keyTimes: string }
+  blue: { values: string; keyTimes: string }
+} {
+  const baseFrames = buildPhaseFrames(rng, channelRange, climaxFrameCount)
 
-  for (let i = 0; i < frames.length; i++) {
-    values.push(formatValue(frames[i].dx))
-    keyTimes.push(formatValue(cumulative))
-    cumulative += DELAY_RATIOS[frames[i].delay] / totalRatio
-  }
+  const redFrames = baseFrames.map((f) => {
+    const wobble = f.dx !== 0 ? lerp(rng, 0.8, 1.2) : 1
+    return { dx: -Math.abs(f.dx) * wobble, time: f.time }
+  })
 
-  keyTimes[keyTimes.length - 1] = '1'
+  const blueFrames = baseFrames.map((f) => {
+    const wobble = f.dx !== 0 ? lerp(rng, 0.8, 1.2) : 1
+    return { dx: Math.abs(f.dx) * wobble, time: f.time }
+  })
 
   return {
-    values: values.join('; '),
-    keyTimes: keyTimes.join('; ')
+    red: framesToValuesAndKeyTimes(redFrames),
+    blue: framesToValuesAndKeyTimes(blueFrames)
   }
 }
 
-function generateChannelValues(
-  rng: () => number,
-  steps: number,
-  min: number,
-  max: number
-): { values: string; keyTimes: string } {
-  const rhythm = selectRhythmPattern(rng)
-  const intensities = buildTensionCurve(rng, steps)
-  const frames = buildFrameSequence(rng, intensities, rhythm, min, max)
-  return framesToValuesAndKeyTimes(frames)
-}
+function generateSlices(rng: () => number, profile: GlitchProfile): SliceDefinition[] {
+  const sliceCount = randInt(rng, 8, 16)
 
-function generateSliceValues(
-  rng: () => number,
-  steps: number
-): { values: string; keyTimes: string } {
-  const rhythm = selectRhythmPattern(rng)
-  const intensities = buildTensionCurve(rng, steps)
-  const frames = buildFrameSequence(rng, intensities, rhythm, -0.2, 0.2)
-  return framesToValuesAndKeyTimes(frames)
-}
-
-export function generateGlitchParams(seed: number): GlitchParams {
-  const rng = createRng(seed)
-
-  const duration = `${lerp(rng, 2, 5).toFixed(1)}s`
-
-  const redSteps = randInt(rng, 5, 10)
-  const blueSteps = randInt(rng, 5, 10)
-
-  const channelOffsets = {
-    red: generateChannelValues(rng, redSteps, -0.12, -0.02),
-    blue: generateChannelValues(rng, blueSteps, 0.02, 0.12)
+  // 1. ランダムな重みを生成し、100%に正規化
+  const rawWeights: number[] = []
+  for (let i = 0; i < sliceCount; i++) {
+    rawWeights.push(lerp(rng, 0.5, 1.5))
   }
+  const totalWeight = rawWeights.reduce((sum, w) => sum + w, 0)
+  const heights = rawWeights.map((w) => Math.max(3, Math.round((w / totalWeight) * 100)))
 
-  const sliceCount = randInt(rng, 5, 9)
-  const animatedCount = randInt(rng, 1, Math.ceil(sliceCount / 2))
+  // 丸め誤差を最大スライスで吸収
+  const summed = heights.reduce((sum, h) => sum + h, 0)
+  const maxIdx = heights.indexOf(Math.max(...heights))
+  heights[maxIdx] += 100 - summed
 
-  const heights: number[] = []
-  let remaining = 100
-  for (let i = 0; i < sliceCount - 1; i++) {
-    const maxH = remaining - (sliceCount - 1 - i)
-    const h = Math.max(1, randInt(rng, 1, Math.max(1, Math.floor(maxH / 2))))
-    heights.push(h)
-    remaining -= h
-  }
-  heights.push(remaining)
-
+  // 2. アニメーション付きスライスを均等間隔で選択
+  const animatedCount = Math.ceil(sliceCount / 3)
   const animatedIndices = new Set<number>()
-  while (animatedIndices.size < animatedCount) {
-    animatedIndices.add(randInt(rng, 0, sliceCount - 1))
+  const step = Math.floor(sliceCount / animatedCount)
+  const offset = randInt(rng, 0, step - 1)
+  for (let i = 0; i < animatedCount; i++) {
+    animatedIndices.add(Math.min(offset + i * step, sliceCount - 1))
   }
 
+  // 3. heroスライスを決定（アニメ付きの中で最小高さ）
+  const animatedArray = [...animatedIndices]
+  animatedArray.sort((a, b) => heights[a] - heights[b])
+  const heroIndex = animatedArray[0]
+
+  // 4. スライス定義を構築
   let yPos = 0
-  const slices: SliceDefinition[] = heights.map((h, i) => {
+  return heights.map((h, i) => {
     const slice: SliceDefinition = {
       y: `${yPos}%`,
       height: `${h}%`,
       result: `slice${i + 1}`
     }
     if (animatedIndices.has(i)) {
-      const steps = randInt(rng, 5, 12)
-      slice.animation = generateSliceValues(rng, steps)
+      const isHero = i === heroIndex
+      const frameCount = isHero ? Math.max(profile.climaxFrameCount + 2, 7) : randInt(rng, 3, 5)
+      const frames = buildPhaseFrames(rng, profile.sliceRange, frameCount)
+      slice.animation = framesToValuesAndKeyTimes(frames)
     }
     yPos += h
     return slice
   })
+}
+
+// seed 429636: 元の手動パターン（rest1≈0.30, spark≈0.03, rest2≈0.37, climax≈0.20, sustain≈0.10）に近い比率を生成する
+export function generateGlitchParams(seed: number): GlitchParams {
+  const rng = createRng(seed)
+  const profile = generateProfile(rng)
+
+  const duration = `${profile.duration.toFixed(1)}s`
+  const channelOffsets = generateSymmetricChannels(
+    rng,
+    profile.channelRange,
+    profile.climaxFrameCount
+  )
+  const slices = generateSlices(rng, profile)
 
   return { duration, channelOffsets, slices }
 }
