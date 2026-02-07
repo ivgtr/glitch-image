@@ -1,5 +1,5 @@
 import axios from 'axios'
-import imageSize from 'image-size'
+import { imageSize } from 'image-size'
 import { query } from './@types/Query'
 import h from './tag'
 
@@ -8,7 +8,7 @@ export const createImageElement = async ({ url }: query) => {
     .get(url as string, { responseType: 'arraybuffer' })
     .then((response) => ({
       buffer: Buffer.from(response.data, 'binary').toString('base64'),
-      ofset: imageSize(response.data)
+      ofset: imageSize(new Uint8Array(response.data))
     }))
 
   // const resize = (n: string) => {
