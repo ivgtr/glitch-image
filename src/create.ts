@@ -1,6 +1,6 @@
 import axios from 'axios'
 import { imageSize } from 'image-size'
-import tag from './tag'
+import tag from './tag.js'
 
 export interface ElementResult {
   content: string

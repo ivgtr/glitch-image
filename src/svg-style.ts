@@ -1,4 +1,4 @@
-import style from './style'
+import style from './style.js'
 
 interface SvgStyleOptions {
   fontSize: number

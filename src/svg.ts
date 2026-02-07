@@ -1,8 +1,8 @@
-import type { ValidatedQuery } from './schema'
-import { createImageElement, createTextElement } from './create'
-import { createGlitchFilter } from './filter'
-import { createSvgStyles } from './svg-style'
-import tag from './tag'
+import type { ValidatedQuery } from './schema.js'
+import { createImageElement, createTextElement } from './create.js'
+import { createGlitchFilter } from './filter.js'
+import { createSvgStyles } from './svg-style.js'
+import tag from './tag.js'
 
 const SVG_ID = 'glitch-image'
 

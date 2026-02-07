@@ -1,4 +1,4 @@
-import tag from './tag'
+import tag from './tag.js'
 
 function createColorMatrices(): string {
   return [
