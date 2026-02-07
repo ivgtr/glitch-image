@@ -1,55 +1,52 @@
 import axios from 'axios'
-import imageSize from 'image-size'
-import { query } from './@types/Query'
-import h from './tag'
+import { imageSize } from 'image-size'
+import stringWidth from 'string-width'
+import tag from './tag.js'
 
-export const createImageElement = async ({ url }: query) => {
-  const { buffer, ofset } = await axios
-    .get(url as string, { responseType: 'arraybuffer' })
-    .then((response) => ({
-      buffer: Buffer.from(response.data, 'binary').toString('base64'),
-      ofset: imageSize(response.data)
-    }))
+export interface ElementResult {
+  content: string
+  offsetWidth: number
+  offsetHeight: number
+}
 
-  // const resize = (n: string) => {
-  //   const value = Number(n) - 20
-  //   const ofset = value / 2
+function escapeTextContent(text: string): string {
+  return text
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+}
 
-  //   return { value, ofset }
-  // }
+export async function createImageElement(url: string): Promise<ElementResult> {
+  const response = await axios.get(url, {
+    responseType: 'arraybuffer',
+    timeout: 10000,
+    maxContentLength: 10 * 1024 * 1024,
+    maxRedirects: 3
+  })
 
-  // const type = 'square'
-
-  // const mask = h(
-  //   'mask',
-  //   {
-  //     id: 'mask'
-  //   },
-  //   h('circle', { cx: '50%', cy: '50%', r: '45%', fill: '#fff' })
-  // )
+  const buffer = Buffer.from(response.data, 'binary').toString('base64')
+  const dimensions = imageSize(new Uint8Array(response.data))
 
   return {
-    content: h('image', {
+    content: tag('image', {
       href: `data:image/jpeg;base64,${buffer}`,
       filter: 'url(#glitch)',
       x: '5%',
       y: '5%',
       height: '90%',
-      width: '90%',
-      mask: 'url(#mask)'
+      width: '90%'
     }),
-    ofset_w: ofset.width as number,
-    ofset_h: ofset.height as number
+    offsetWidth: dimensions.width ?? 300,
+    offsetHeight: dimensions.height ?? 300
   }
 }
 
-export const createTextElement = ({ text, fontSize }: query) => {
-  const text_length = text?.length as number
-  const ofset_h = Number(fontSize)
-  const ofset_w = text_length * ofset_h
+export function createTextElement(text: string, fontSize: number): ElementResult {
+  const offsetHeight = Math.ceil(fontSize * 1.5)
+  const offsetWidth = stringWidth(text) * fontSize
 
   return {
-    content: h(
+    content: tag(
       'text',
       {
         class: 'text-centered',
@@ -57,9 +54,9 @@ export const createTextElement = ({ text, fontSize }: query) => {
         x: '50%',
         y: '50%'
       },
-      text as string
+      escapeTextContent(text)
     ),
-    ofset_w,
-    ofset_h
+    offsetWidth,
+    offsetHeight
   }
 }

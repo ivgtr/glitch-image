@@ -1,27 +1,43 @@
-export default function (
+function escapeAttr(value: string | number): string {
+  return String(value)
+    .replace(/&/g, '&amp;')
+    .replace(/"/g, '&quot;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+}
+
+const VOID_TAGS = [
+  'area',
+  'base',
+  'br',
+  'col',
+  'embed',
+  'hr',
+  'image',
+  'img',
+  'input',
+  'keygen',
+  'link',
+  'meta',
+  'param',
+  'source'
+]
+
+export default function tag(
   tagName: string,
   attributes: { [attr: string]: string | number },
   ...children: string[]
 ): string {
-  const isVoidTag = [
-    'area',
-    'base',
-    'br',
-    'col',
-    'embed',
-    'hr',
-    'img',
-    'input',
-    'keygen',
-    'link',
-    'meta',
-    'param',
-    'source'
-  ].includes(tagName)
+  const isVoidTag = VOID_TAGS.includes(tagName)
 
-  const attrs = Object.entries(attributes).reduce((acc, [k, v]) => `${acc} ${k}="${v}"`, '')
+  const attrs = Object.entries(attributes).reduce(
+    (acc, [k, v]) => `${acc} ${k}="${escapeAttr(v)}"`,
+    ''
+  )
 
-  const close = isVoidTag ? '' : `${children.join('')}</${tagName}>`
+  if (isVoidTag) {
+    return `<${tagName}${attrs} />`
+  }
 
-  return `<${tagName}${attrs}>${close}`
+  return `<${tagName}${attrs}>${children.join('')}</${tagName}>`
 }
