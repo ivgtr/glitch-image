@@ -1,17 +1,40 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node'
-import type { query } from '../src/@types/Query.d'
+import { AxiosError } from 'axios'
+import * as v from 'valibot'
+import type { QueryInput } from '../src/schema'
+import { validateQuery } from '../src/schema'
 import { createElement } from '../src/svg'
 
 const CACHE_MAX_AGE = 60 * 60 * 2
 
-export default async (req: VercelRequest & { query: query }, res: VercelResponse) => {
-  const { text, url, width, height, color, darkColor, fontSize } = req.query
+export default async function handler(req: VercelRequest, res: VercelResponse) {
+  try {
+    const query = validateQuery(req.query as QueryInput)
+    const svg = await createElement(query)
 
-  const svg = await createElement({ text, url, width, height, color, darkColor, fontSize })
+    res.writeHead(200, {
+      'Content-Type': 'image/svg+xml',
+      'Cache-Control': `public, max-age=${CACHE_MAX_AGE}`
+    })
+    res.end(svg)
+  } catch (error) {
+    if (error instanceof v.ValiError) {
+      res.status(400).json({
+        error: 'Validation Error',
+        issues: error.issues.map((issue) => issue.message)
+      })
+      return
+    }
 
-  res.writeHead(200, {
-    'Content-Type': 'image/svg+xml',
-    'Cache-Control': `public, max-age=${CACHE_MAX_AGE}`
-  })
-  res.end(svg)
+    if (error instanceof AxiosError) {
+      res.status(502).json({
+        error: 'Failed to fetch external image'
+      })
+      return
+    }
+
+    res.status(500).json({
+      error: 'Internal Server Error'
+    })
+  }
 }
