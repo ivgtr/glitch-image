@@ -1,9 +1,9 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node'
 import { AxiosError } from 'axios'
 import * as v from 'valibot'
-import type { QueryInput } from '../src/schema'
-import { validateQuery } from '../src/schema'
-import { createElement } from '../src/svg'
+import type { QueryInput } from '../src/schema.js'
+import { validateQuery } from '../src/schema.js'
+import { createElement } from '../src/svg.js'
 
 const CACHE_MAX_AGE = 60 * 60 * 2
 

@@ -1,6 +1,7 @@
 {
   "name": "glitch-image",
   "version": "0.0.1",
+  "type": "module",
   "main": "index.js",
   "license": "MIT",
   "scripts": {
@@ -21,6 +22,7 @@
     "@vercel/node": "^5.0.0",
     "axios": "^1.7.0",
     "image-size": "^2.0.0",
+    "string-width": "^8.1.1",
     "valibot": "^1.0.0"
   }
 }

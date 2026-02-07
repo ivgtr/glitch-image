@@ -1,4 +1,4 @@
-import tag from './tag'
+import tag from './tag.js'
 
 function createColorMatrices(): string {
   return [
@@ -151,9 +151,9 @@ export function createGlitchFilter(): string {
         id: 'glitch',
         primitiveUnits: 'objectBoundingBox',
         x: '-10%',
-        y: '0%',
+        y: '-10%',
         width: '120%',
-        height: '100%'
+        height: '120%'
       },
       createColorMatrices(),
       createChannelOffsets(),
