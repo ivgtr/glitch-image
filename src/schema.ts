@@ -51,6 +51,15 @@ const urlSchema = v.pipe(
   }, 'Must be a public http/https URL')
 )
 
+const seedSchema = v.pipe(
+  v.string(),
+  v.transform(Number),
+  v.number('Must be a valid number'),
+  v.integer('Must be an integer'),
+  v.minValue(0, 'Must be at least 0'),
+  v.maxValue(2147483647, 'Must be at most 2147483647')
+)
+
 const QuerySchema = v.object({
   text: v.optional(v.pipe(v.string(), v.minLength(1), v.maxLength(200))),
   url: v.optional(urlSchema),
@@ -58,7 +67,8 @@ const QuerySchema = v.object({
   height: v.optional(dimension),
   color: v.optional(hexColor),
   darkColor: v.optional(hexColor),
-  fontSize: v.optional(fontSizeSchema)
+  fontSize: v.optional(fontSizeSchema),
+  seed: v.optional(seedSchema)
 })
 
 export type QueryInput = {
@@ -69,6 +79,7 @@ export type QueryInput = {
   color?: string | string[]
   darkColor?: string | string[]
   fontSize?: string | string[]
+  seed?: string | string[]
 }
 
 export type ValidatedQuery = v.InferOutput<typeof QuerySchema>

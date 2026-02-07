@@ -7,10 +7,17 @@ import { createElement } from '../src/svg.js'
 
 const CACHE_MAX_AGE = 60 * 60 * 2
 
+const SEED_INTERVAL_SECONDS = CACHE_MAX_AGE
+
+function computeTimeSeed(): number {
+  return Math.floor(Math.floor(Date.now() / 1000) / SEED_INTERVAL_SECONDS)
+}
+
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   try {
     const query = validateQuery(req.query as QueryInput)
-    const svg = await createElement(query)
+    const seed = query.seed ?? computeTimeSeed()
+    const svg = await createElement({ ...query, seed })
 
     res.writeHead(200, {
       'Content-Type': 'image/svg+xml',
