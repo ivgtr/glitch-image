@@ -9,6 +9,32 @@ export interface GlitchParams {
   slices: SliceDefinition[]
 }
 
+type DelayType = 'FLASH' | 'QUICK' | 'NORMAL' | 'FREEZE'
+
+interface Frame {
+  dx: number
+  delay: DelayType
+}
+
+const DELAY_RATIOS: Record<DelayType, number> = {
+  FLASH: 0.03,
+  QUICK: 0.06,
+  NORMAL: 0.12,
+  FREEZE: 0.25
+} as const
+
+const RHYTHM_PATTERNS: DelayType[][] = [
+  ['NORMAL', 'FLASH', 'QUICK', 'FLASH'],
+  ['FLASH', 'FREEZE', 'FLASH', 'QUICK'],
+  ['FLASH', 'QUICK', 'NORMAL', 'FREEZE'],
+  ['QUICK', 'NORMAL', 'QUICK', 'FLASH'],
+  ['FLASH', 'FLASH', 'FLASH', 'QUICK'],
+  ['FLASH', 'FREEZE', 'FLASH', 'FREEZE'],
+  ['FLASH', 'FLASH', 'QUICK', 'NORMAL']
+]
+
+const PHI = 1.618
+
 function createRng(seed: number): () => number {
   let s = seed | 0
   return () => {
@@ -27,14 +53,86 @@ function randInt(rng: () => number, min: number, max: number): number {
   return Math.floor(lerp(rng, min, max + 1))
 }
 
-function generateKeyTimes(rng: () => number, steps: number): string {
-  const times = [0]
-  for (let i = 1; i < steps - 1; i++) {
-    times.push(rng())
+function selectRhythmPattern(rng: () => number): DelayType[] {
+  return RHYTHM_PATTERNS[randInt(rng, 0, RHYTHM_PATTERNS.length - 1)]
+}
+
+function buildTensionCurve(rng: () => number, steps: number): number[] {
+  const intensities: number[] = []
+  const remaining = steps
+  const buildupCount = Math.max(1, Math.round((remaining * PHI) / (PHI + 1)))
+  const climaxCount = randInt(rng, 1, 2)
+  const releaseCount = Math.max(1, steps - buildupCount - climaxCount)
+  const actualBuildupCount = steps - climaxCount - releaseCount
+
+  for (let i = 0; i < actualBuildupCount; i++) {
+    const t = actualBuildupCount === 1 ? 1 : i / (actualBuildupCount - 1)
+    intensities.push(0.1 + 0.9 * t * t)
   }
-  times.sort((a, b) => a - b)
-  times.push(1)
-  return times.map((t) => t.toFixed(2).replace(/\.?0+$/, '') || '0').join('; ')
+
+  for (let i = 0; i < climaxCount; i++) {
+    intensities.push(lerp(rng, 0.9, 1.0))
+  }
+
+  for (let i = 0; i < releaseCount; i++) {
+    const t = releaseCount === 1 ? 1 : i / (releaseCount - 1)
+    intensities.push(0.6 * (1 - t))
+  }
+
+  return intensities
+}
+
+function buildFrameSequence(
+  rng: () => number,
+  intensities: number[],
+  rhythm: DelayType[],
+  min: number,
+  max: number
+): Frame[] {
+  const frames: Frame[] = [{ dx: 0, delay: 'QUICK' }]
+
+  for (let i = 0; i < intensities.length; i++) {
+    const intensity = intensities[i]
+    const breathChance = intensity > 0.7 ? 0.1 : intensity > 0.3 ? 0.3 : 0.6
+
+    if (rng() < breathChance) {
+      const breathDelay: DelayType = intensity > 0.7 ? 'QUICK' : 'FREEZE'
+      frames.push({ dx: 0, delay: breathDelay })
+    }
+
+    const amplitude = intensity * (max - min)
+    const dx = min + rng() * amplitude * (rng() < 0.5 ? 1 : -1)
+    const delay = rhythm[i % rhythm.length]
+    frames.push({ dx, delay })
+  }
+
+  frames.push({ dx: 0, delay: 'NORMAL' })
+  return frames
+}
+
+function formatValue(v: number): string {
+  return v.toFixed(2).replace(/\.?0+$/, '') || '0'
+}
+
+function framesToValuesAndKeyTimes(frames: Frame[]): { values: string; keyTimes: string } {
+  const totalRatio = frames.reduce((sum, f) => sum + DELAY_RATIOS[f.delay], 0)
+
+  const values: string[] = []
+  const keyTimes: string[] = []
+  let cumulative = 0
+
+  for (let i = 0; i < frames.length; i++) {
+    values.push(formatValue(frames[i].dx))
+    keyTimes.push(formatValue(cumulative))
+    cumulative += DELAY_RATIOS[frames[i].delay] / totalRatio
+  }
+
+  keyTimes[keyTimes.length - 1] = '1'
+
+  return {
+    values: values.join('; '),
+    keyTimes: keyTimes.join('; ')
+  }
 }
 
 function generateChannelValues(
@@ -42,22 +140,21 @@ function generateChannelValues(
   steps: number,
   min: number,
   max: number
-): string {
-  const values = [0]
-  for (let i = 1; i < steps; i++) {
-    const useZero = rng() < 0.3
-    values.push(useZero ? 0 : lerp(rng, min, max))
-  }
-  return values.map((v) => v.toFixed(2).replace(/\.?0+$/, '') || '0').join('; ')
+): { values: string; keyTimes: string } {
+  const rhythm = selectRhythmPattern(rng)
+  const intensities = buildTensionCurve(rng, steps)
+  const frames = buildFrameSequence(rng, intensities, rhythm, min, max)
+  return framesToValuesAndKeyTimes(frames)
 }
 
-function generateSliceValues(rng: () => number, steps: number): string {
-  const values = [0]
-  for (let i = 1; i < steps; i++) {
-    const useZero = rng() < 0.25
-    values.push(useZero ? 0 : lerp(rng, -0.2, 0.2))
-  }
-  return values.map((v) => v.toFixed(2).replace(/\.?0+$/, '') || '0').join('; ')
+function generateSliceValues(
+  rng: () => number,
+  steps: number
+): { values: string; keyTimes: string } {
+  const rhythm = selectRhythmPattern(rng)
+  const intensities = buildTensionCurve(rng, steps)
+  const frames = buildFrameSequence(rng, intensities, rhythm, -0.2, 0.2)
+  return framesToValuesAndKeyTimes(frames)
 }
 
 export function generateGlitchParams(seed: number): GlitchParams {
@@ -65,18 +162,12 @@ export function generateGlitchParams(seed: number): GlitchParams {
 
   const duration = `${lerp(rng, 2, 5).toFixed(1)}s`
 
-  const redSteps = randInt(rng, 3, 6)
-  const blueSteps = randInt(rng, 3, 6)
+  const redSteps = randInt(rng, 5, 10)
+  const blueSteps = randInt(rng, 5, 10)
 
   const channelOffsets = {
-    red: {
-      values: generateChannelValues(rng, redSteps, -0.12, -0.02),
-      keyTimes: generateKeyTimes(rng, redSteps)
-    },
-    blue: {
-      values: generateChannelValues(rng, blueSteps, 0.02, 0.12),
-      keyTimes: generateKeyTimes(rng, blueSteps)
-    }
+    red: generateChannelValues(rng, redSteps, -0.12, -0.02),
+    blue: generateChannelValues(rng, blueSteps, 0.02, 0.12)
   }
 
   const sliceCount = randInt(rng, 5, 9)
@@ -105,11 +196,8 @@ export function generateGlitchParams(seed: number): GlitchParams {
       result: `slice${i + 1}`
     }
     if (animatedIndices.has(i)) {
-      const steps = randInt(rng, 3, 9)
-      slice.animation = {
-        values: generateSliceValues(rng, steps),
-        keyTimes: generateKeyTimes(rng, steps)
-      }
+      const steps = randInt(rng, 5, 12)
+      slice.animation = generateSliceValues(rng, steps)
     }
     yPos += h
     return slice
