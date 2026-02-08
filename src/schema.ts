@@ -11,7 +11,8 @@ const isPrivateIP = (hostname: string): boolean => {
     /^\[?::1\]?$/,
     /^\[?fe80:/i,
     /^\[?fc00:/i,
-    /^\[?fd/i
+    /^\[?fd/i,
+    /^\[?::ffff:(127\.|10\.|172\.(1[6-9]|2\d|3[01])\.|192\.168\.|0\.)/i
   ]
   return patterns.some((p) => p.test(hostname))
 }
