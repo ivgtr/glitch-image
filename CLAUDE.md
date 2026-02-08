@@ -20,17 +20,22 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ## アーキテクチャ
 
 ```
-api/index.ts          — Vercelサーバーレス関数エントリポイント
-  └─ src/svg.ts       — SVG生成メインロジック (createElement)
-      ├─ src/create.ts — 要素ファクトリ (画像fetch+base64変換 / テキスト要素生成)
-      ├─ src/tag.ts    — HTML/SVGタグ文字列ビルダー
-      └─ src/style.ts  — CSSスタイル/ダークモードメディアクエリ生成
+api/index.ts             — Vercelサーバーレス関数エントリポイント
+  └─ src/svg.ts          — SVG生成メインロジック (createElement)
+      ├─ src/create.ts   — 要素ファクトリ (画像fetch+base64変換 / テキスト要素生成)
+      ├─ src/filter.ts   — SVGフィルタチェーン生成 (createGlitchFilter)
+      ├─ src/random.ts   — シード値ベースのグリッチパラメータ生成
+      ├─ src/schema.ts   — クエリパラメータのバリデーション
+      ├─ src/svg-style.ts — CSSスタイル/ダークモードメディアクエリ生成
+      ├─ src/style.ts    — 汎用スタイルヘルパー
+      └─ src/tag.ts      — HTML/SVGタグ文字列ビルダー
 ```
 
-- `api/index.ts`: クエリパラメータ(`text`, `url`, `width`, `height`, `color`, `darkColor`, `fontSize`)を受け取り、`createElement()`でSVGを生成して返す。2時間キャッシュ設定。
-- `src/svg.ts`: SVGフィルタチェーン(colorMatrix → feOffset → feBlend → feMerge)でグリッチエフェクトを構築。3秒周期のアニメーション。
+- `api/index.ts`: クエリパラメータ(`text`, `url`, `width`, `height`, `color`, `darkColor`, `fontSize`, `seed`)を受け取り、`createElement()`でSVGを生成して返す。2時間キャッシュ設定。
+- `src/svg.ts`: SVGフィルタチェーン(colorMatrix → feOffset → feBlend → feMerge)でグリッチエフェクトを構築。
+- `src/random.ts`: シード値からRNGを生成し、アニメーション周期(2.5〜5.0秒)、チャンネルオフセット、スライス定義をランダム生成。
 - `src/create.ts`: `createImageElement`はaxiosで画像取得→base64変換→image-sizeで寸法取得。`createTextElement`はテキストSVG要素を生成。
-- 型定義は `src/@types/Query.d.ts` にクエリパラメータの型がある。
+- 型定義は `src/schema.ts` でvalibotスキーマとして定義。
 
 ## デプロイ
 

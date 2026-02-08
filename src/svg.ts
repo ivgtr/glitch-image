@@ -1,6 +1,7 @@
 import type { ValidatedQuery } from './schema.js'
 import { createImageElement, createTextElement } from './create.js'
 import { createGlitchFilter } from './filter.js'
+import { generateGlitchParams } from './random.js'
 import { createSvgStyles } from './svg-style.js'
 import tag from './tag.js'
 
@@ -20,8 +21,9 @@ export async function createElement({
   height,
   color = DEFAULTS.color,
   darkColor = DEFAULTS.darkColor,
-  fontSize = DEFAULTS.fontSize
-}: ValidatedQuery): Promise<string> {
+  fontSize = DEFAULTS.fontSize,
+  seed
+}: ValidatedQuery & { seed: number }): Promise<string> {
   const resolvedText = text ?? DEFAULTS.text
 
   const {
@@ -34,6 +36,8 @@ export async function createElement({
 
   const viewWidth = width ?? offsetWidth
   const viewHeight = height ?? offsetHeight
+
+  const glitchParams = generateGlitchParams(seed)
 
   return tag(
     'svg',
@@ -54,6 +58,6 @@ export async function createElement({
       },
       content
     ),
-    tag('svg', { x: 0, y: 0 }, createGlitchFilter())
+    tag('svg', { x: 0, y: 0 }, createGlitchFilter(glitchParams))
   )
 }

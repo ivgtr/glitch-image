@@ -10,10 +10,7 @@ export interface ElementResult {
 }
 
 function escapeTextContent(text: string): string {
-  return text
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
+  return text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
 }
 
 export async function createImageElement(url: string): Promise<ElementResult> {
@@ -24,12 +21,13 @@ export async function createImageElement(url: string): Promise<ElementResult> {
     maxRedirects: 3
   })
 
-  const buffer = Buffer.from(response.data, 'binary').toString('base64')
+  const contentType = (response.headers['content-type'] as string) ?? 'image/jpeg'
+  const buffer = Buffer.from(response.data).toString('base64')
   const dimensions = imageSize(new Uint8Array(response.data))
 
   return {
     content: tag('image', {
-      href: `data:image/jpeg;base64,${buffer}`,
+      href: `data:${contentType};base64,${buffer}`,
       filter: 'url(#glitch)',
       x: '5%',
       y: '5%',
