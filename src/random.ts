@@ -29,6 +29,11 @@ interface PhaseFrame {
   time: number
 }
 
+interface DirectionPattern {
+  spark: number
+  climax: number[]
+}
+
 function createRng(seed: number): () => number {
   let s = seed | 0
   return () => {
@@ -73,19 +78,43 @@ function generatePhaseConfig(rng: () => number): PhaseConfig {
   }
 }
 
+function buildDirectionPattern(rng: () => number, maxFrameCount: number): DirectionPattern {
+  const spark = rng() < 0.5 ? 1 : -1
+
+  const climax: number[] = []
+  let dir = rng() < 0.5 ? 1 : -1
+  let runLen = 0
+  let targetRun = randInt(rng, 2, 4)
+
+  for (let i = 0; i < maxFrameCount; i++) {
+    climax.push(dir)
+    runLen++
+    if (runLen >= targetRun) {
+      dir *= -1
+      runLen = 0
+      targetRun = randInt(rng, 2, 4)
+    }
+  }
+
+  return { spark, climax }
+}
+
 function buildPhaseFrames(
   rng: () => number,
   maxDx: number,
-  climaxFrameCount: number
+  climaxFrameCount: number,
+  sharedPhase?: PhaseConfig,
+  sharedPattern?: DirectionPattern
 ): PhaseFrame[] {
-  const phase = generatePhaseConfig(rng)
+  const phase = sharedPhase ?? generatePhaseConfig(rng)
   const frames: PhaseFrame[] = []
 
   // REST1: 静止
   frames.push({ dx: 0, time: 0 })
 
   // SPARK: 一瞬のグリッチ + リセット
-  const sparkDx = lerp(rng, 0.5, 1.0) * maxDx * (rng() < 0.5 ? 1 : -1)
+  const sparkDir = sharedPattern ? sharedPattern.spark : rng() < 0.5 ? 1 : -1
+  const sparkDx = lerp(rng, 0.5, 1.0) * maxDx * sparkDir
   frames.push({ dx: sparkDx, time: phase.rest1 })
   frames.push({ dx: 0, time: phase.rest1 + phase.spark * 0.5 })
 
@@ -96,7 +125,12 @@ function buildPhaseFrames(
   const climaxStepSize = phase.climax / climaxFrameCount
   for (let i = 0; i < climaxFrameCount; i++) {
     const intensity = lerp(rng, 0.6, 1.0)
-    const dx = intensity * maxDx * (rng() < 0.5 ? 1 : -1)
+    const dir = sharedPattern
+      ? sharedPattern.climax[i % sharedPattern.climax.length]
+      : rng() < 0.5
+        ? 1
+        : -1
+    const dx = intensity * maxDx * dir
     frames.push({ dx, time: climaxStart + i * climaxStepSize })
   }
 
@@ -177,7 +211,12 @@ function generateSlices(rng: () => number, profile: GlitchProfile): SliceDefinit
   animatedArray.sort((a, b) => heights[a] - heights[b])
   const heroIndex = animatedArray[0]
 
-  // 4. スライス定義を構築
+  // 4. 全スライスで共有するタイミングと方向パターン
+  const sharedPhase = generatePhaseConfig(rng)
+  const heroFrameCount = Math.max(profile.climaxFrameCount + 2, 7)
+  const sharedPattern = buildDirectionPattern(rng, heroFrameCount)
+
+  // 5. スライス定義を構築
   let yPos = 0
   return heights.map((h, i) => {
     const slice: SliceDefinition = {
@@ -187,8 +226,9 @@ function generateSlices(rng: () => number, profile: GlitchProfile): SliceDefinit
     }
     if (animatedIndices.has(i)) {
       const isHero = i === heroIndex
-      const frameCount = isHero ? Math.max(profile.climaxFrameCount + 2, 7) : randInt(rng, 3, 5)
-      const frames = buildPhaseFrames(rng, profile.sliceRange, frameCount)
+      const frameCount = isHero ? heroFrameCount : randInt(rng, 3, 5)
+      const maxDx = profile.sliceRange * lerp(rng, 0.8, 1.2)
+      const frames = buildPhaseFrames(rng, maxDx, frameCount, sharedPhase, sharedPattern)
       slice.animation = framesToValuesAndKeyTimes(frames)
     }
     yPos += h
